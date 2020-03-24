@@ -1,6 +1,7 @@
 import { NowRequest, NowResponse } from "@now/node";
-import puppeteer from "puppeteer-core";
-import * as firebase from "firebase-admin";
+import firebase from "firebase-admin";
+import axios from "axios";
+import cheerio from "cheerio";
 import * as Sentry from "@sentry/node";
 import * as Integrations from "@sentry/integrations";
 
@@ -11,14 +12,18 @@ type Sample = {
   deaths: number | null;
 };
 
-const API_KEY = process.env.SCRAPER_API_KEY;
-const SENTRY_DSN = process.env.SENTRY_DSN;
+const API_KEY = process.env.SCRAPER_API_KEY as string;
+const SENTRY_DSN = process.env.SENTRY_DSN as string;
+const FIREBASE_KEY = process.env.FIREBASE_KEY as string;
+const COUNTRY = process.env.COUNTRY || "angola";
+const SOURCE_URL = process.env.SOURCE_URL || "https://covid19.gov.ao/";
 
-const url = process.env.PAGE_URL || "https://covid19.gov.ao/";
-let db: firebase.firestore.Firestore;
-
-console.assert(API_KEY && API_KEY.length > 8, "Invalid API_KEY");
+console.assert(API_KEY && API_KEY.length > 8, "Invalid SCRAPER_API_KEY");
 console.assert(SENTRY_DSN, "Invalid SENTRY_DSN");
+console.assert(COUNTRY, "Invalid COUNTRY");
+console.assert(SOURCE_URL, "Invalid SOURCE_URL");
+
+let db: firebase.firestore.Firestore;
 
 initializeFirebase();
 Sentry.init({
@@ -38,11 +43,14 @@ export = async function(req: NowRequest, res: NowResponse) {
     return;
   }
 
-  await run().catch(error => {
+  run().catch(error => {
     console.error(error);
   });
 
-  res.status(200).json({ message: "scraping in progress" });
+  res
+    .status(200)
+    .json({ message: "scraping in progress" })
+    .end();
 };
 
 async function run() {
@@ -60,53 +68,44 @@ async function run() {
 // SCRAPER
 
 async function sample() {
-  return runBrowser(async browser => {
-    const page = await browser.newPage();
-    await page.goto(url);
+  const response = await axios.get(SOURCE_URL);
+  const $ = cheerio.load(response.data);
 
-    const result = await page.evaluate<() => Sample>(() => {
-      const statElement = (index: number) => {
-        const selector = `body > section > section.lastsection.container.box.effect7 > div > div > div > div > div:nth-child(${index}) > span.big-number.text-black`;
-        const element = document.querySelector(selector);
+  const statElement = (index: number) => {
+    const selector = `body > section > section.lastsection.container.box.effect7 > div > div > div > div > div:nth-child(${index}) > span.big-number.text-black`;
+    const element = $(selector);
 
-        if (!element) {
-          Sentry.captureEvent({
-            message: "element null",
-            extra: {
-              index,
-              selector
-            }
-          });
-          return null;
+    if (!element || !element.length) {
+      Sentry.captureEvent({
+        message: "element null",
+        extra: {
+          index,
+          selector
         }
+      });
+      return null;
+    }
 
-        return parseInt(element.textContent);
-      };
+    return parseInt(element.text());
+  };
 
-      const confirmed = statElement(2);
-      const suspects = statElement(3);
-      const recovered = statElement(4);
-      const deaths = statElement(5);
+  const confirmed = statElement(2);
+  const suspects = statElement(3);
+  const recovered = statElement(4);
+  const deaths = statElement(5);
 
-      return {
-        confirmed,
-        suspects,
-        recovered,
-        deaths
-      };
-    });
-
-    return result;
-  });
+  return {
+    confirmed,
+    suspects,
+    recovered,
+    deaths
+  };
 }
 
 // STORE
 
 function initializeFirebase() {
-  const serviceAccountJSON = Buffer.from(
-    process.env.FIREBASE_KEY,
-    "base64"
-  ).toString();
+  const serviceAccountJSON = Buffer.from(FIREBASE_KEY, "base64").toString();
   const serviceAccount = JSON.parse(serviceAccountJSON);
 
   firebase.initializeApp({
@@ -120,7 +119,7 @@ async function save(timestamp: Date, data: Sample) {
   await db.collection("samples").add({
     timestamp,
     ...data,
-    country: "angola"
+    country: COUNTRY
   });
 }
 
@@ -150,38 +149,6 @@ function changed(sample1: Sample, sample2: Sample) {
   );
 }
 
-async function runBrowser<T>(
-  handler: (b: puppeteer.Browser) => Promise<T | null>
-) {
-  let options: puppeteer.LaunchOptions;
-
-  if (process.env.NOW_REGION) {
-    const chrome = require("chrome-aws-lambda");
-    options = {
-      args: chrome.args,
-      executablePath: await chrome.executablePath,
-      headless: chrome.headless
-    };
-  } else {
-    const chrome = require("puppeteer");
-    options = {
-      args: chrome.defaultArgs(),
-      executablePath: chrome.executablePath(),
-      headless: false
-    };
-  }
-
-  const browser = await puppeteer.launch(options);
-  let result: T;
-
-  try {
-    result = await handler(browser);
-  } catch (error) {
-    console.error(error);
-    result = null;
-  } finally {
-    browser.close();
-  }
-
-  return result;
-}
+// sample()
+//   .then(x => console.log(x))
+//   .catch(x => console.error(x));

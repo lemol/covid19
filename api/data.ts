@@ -1,5 +1,5 @@
 import { NowRequest, NowResponse } from "@now/node";
-import * as firebase from "firebase-admin";
+import firebase from "firebase-admin";
 import * as Sentry from "@sentry/node";
 import * as Integrations from "@sentry/integrations";
 
@@ -12,11 +12,13 @@ type Sample = {
   country: string;
 };
 
-const SENTRY_DSN = process.env.SENTRY_DSN;
-
-let db: firebase.firestore.Firestore;
+const SENTRY_DSN = process.env.SENTRY_DSN as string;
+const FIREBASE_KEY = process.env.FIREBASE_KEY as string;
 
 console.assert(SENTRY_DSN, "Invalid SENTRY_DSN");
+console.assert(FIREBASE_KEY, "Invalid FIREBASE_KEY");
+
+let db: firebase.firestore.Firestore;
 
 initializeFirebase();
 Sentry.init({
@@ -26,7 +28,7 @@ Sentry.init({
 
 // MAIN
 
-export = async function(req: NowRequest, res: NowResponse) {
+export = async function(_req: NowRequest, res: NowResponse) {
   try {
     const samples = await getSamples();
     res.status(200).json({ data: samples });
@@ -39,10 +41,7 @@ export = async function(req: NowRequest, res: NowResponse) {
 // STORE
 
 function initializeFirebase() {
-  const serviceAccountJSON = Buffer.from(
-    process.env.FIREBASE_KEY,
-    "base64"
-  ).toString();
+  const serviceAccountJSON = Buffer.from(FIREBASE_KEY, "base64").toString();
   const serviceAccount = JSON.parse(serviceAccountJSON);
 
   firebase.initializeApp({
@@ -52,7 +51,7 @@ function initializeFirebase() {
   db = firebase.firestore();
 }
 
-async function getSamples() {
+async function getSamples(): Promise<Sample[]> {
   const query = await db
     .collection("samples")
     .orderBy("timestamp")
@@ -64,7 +63,7 @@ async function getSamples() {
     return {
       ...result,
       timestamp: result.timestamp.toDate()
-    };
+    } as Sample;
   });
 }
 
