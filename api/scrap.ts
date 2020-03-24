@@ -106,11 +106,17 @@ async function save(timestamp: Date, data: Sample) {
 }
 
 async function getCurrent() {
-  const query = await db
-    .collection("samples")
-    .orderBy("timestamp", "desc")
-    .limit(1);
-  return (await query.get()).docs[0].data();
+  try {
+    const query = await db
+      .collection("samples")
+      .orderBy("timestamp", "desc")
+      .limit(1)
+      .get();
+
+    return query.docs[0].data();
+  } catch {
+    return null;
+  }
 }
 
 // HELPERS
