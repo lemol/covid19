@@ -20,7 +20,9 @@ initializeFirebase();
 // MAIN
 
 export = async function(req: NowRequest, res: NowResponse) {
-  const apiKey = req.headers.authorization?.substr("Bearer ".length);
+  const apiKey =
+    req.headers.authorization &&
+    req.headers.authorization.substr("Bearer ".length);
 
   if (apiKey !== API_KEY) {
     res.status(401);
