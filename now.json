@@ -1,6 +1,7 @@
 {
   "env": {
     "SCRAPER_API_KEY": "@covid19_scraper_api_key",
-    "FIREBASE_KEY": "@covid19_firebase_key"
+    "FIREBASE_KEY": "@covid19_firebase_key",
+    "SENTRY_DSN": "@covid19_sentry_dsn"
   }
 }

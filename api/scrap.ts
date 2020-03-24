@@ -1,6 +1,8 @@
 import { NowRequest, NowResponse } from "@now/node";
-import * as puppeteer from "puppeteer-core";
+import puppeteer from "puppeteer-core";
 import * as firebase from "firebase-admin";
+import * as Sentry from "@sentry/node";
+import * as Integrations from "@sentry/integrations";
 
 type Sample = {
   confirmed: number | null;
@@ -10,12 +12,19 @@ type Sample = {
 };
 
 const API_KEY = process.env.SCRAPER_API_KEY;
+const SENTRY_DSN = process.env.SENTRY_DSN;
+
 const url = process.env.PAGE_URL || "https://covid19.gov.ao/";
 let db: firebase.firestore.Firestore;
 
 console.assert(API_KEY && API_KEY.length > 8, "Invalid API_KEY");
+console.assert(SENTRY_DSN, "Invalid SENTRY_DSN");
 
 initializeFirebase();
+Sentry.init({
+  dsn: SENTRY_DSN,
+  integrations: [new Integrations.CaptureConsole()]
+});
 
 // MAIN
 
@@ -30,7 +39,7 @@ export = async function(req: NowRequest, res: NowResponse) {
   }
 
   await run().catch(error => {
-    console.log(error);
+    console.error(error);
   });
 
   res.status(200).json({ message: "scraping in progress" });
@@ -39,7 +48,7 @@ export = async function(req: NowRequest, res: NowResponse) {
 async function run() {
   const current = await getCurrent();
   const next = await sample();
-  console.log({ current, next });
+
   if (current && !changed(current as any, next)) {
     return;
   }
@@ -57,11 +66,21 @@ async function sample() {
 
     const result = await page.evaluate<() => Sample>(() => {
       const statElement = (index: number) => {
-        const element = document.querySelector(
-          `body > section > section.lastsection.container.box.effect7 > div > div > div > div > div:nth-child(${index}) > span.big-number.text-black`
-        );
+        const selector = `body > section > section.lastsection.container.box.effect7 > div > div > div > div > div:nth-child(${index}) > span.big-number.text-black`;
+        const element = document.querySelector(selector);
 
-        return !element ? null : parseInt(element.textContent);
+        if (!element) {
+          Sentry.captureEvent({
+            message: "element null",
+            extra: {
+              index,
+              selector
+            }
+          });
+          return null;
+        }
+
+        return parseInt(element.textContent);
       };
 
       const confirmed = statElement(2);
@@ -114,7 +133,8 @@ async function getCurrent() {
       .get();
 
     return query.docs[0].data();
-  } catch {
+  } catch (error) {
+    console.error(error);
     return null;
   }
 }
@@ -156,8 +176,8 @@ async function runBrowser<T>(
 
   try {
     result = await handler(browser);
-  } catch (e) {
-    console.log(e);
+  } catch (error) {
+    console.error(error);
     result = null;
   } finally {
     browser.close();
