@@ -1,6 +1,6 @@
 {
   "env": {
     "SCRAPER_API_KEY": "@covid19_scraper_api_key",
-    "FIREBASE_KEY": "@covid19_firebase_api_key"
+    "FIREBASE_KEY": "@covid19_firebase_key"
   }
 }
