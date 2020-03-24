@@ -55,15 +55,18 @@ async function sample() {
     await page.goto(url);
 
     const result = await page.evaluate<() => Sample>(() => {
-      const statElement = (index: number) =>
-        document.querySelector(
+      const statElement = (index: number) => {
+        const element = document.querySelector(
           `body > section > section.lastsection.container.box.effect7 > div > div > div > div > div:nth-child(${index}) > span.big-number.text-black`
         );
 
-      const confirmed = parseInt(statElement(2)?.textContent);
-      const suspects = parseInt(statElement(3)?.textContent);
-      const recovered = parseInt(statElement(4)?.textContent);
-      const deaths = parseInt(statElement(5)?.textContent);
+        return !element ? null : parseInt(element.textContent);
+      };
+
+      const confirmed = statElement(2);
+      const suspects = statElement(3);
+      const recovered = statElement(4);
+      const deaths = statElement(5);
 
       return {
         confirmed,
