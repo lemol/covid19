@@ -25,16 +25,15 @@ export = async function(req: NowRequest, res: NowResponse) {
     req.headers.authorization.substr("Bearer ".length);
 
   if (apiKey !== API_KEY) {
-    res.status(401);
-    res.json({
-      error: "invalid or no api key"
-    });
+    res.status(401).json({ message: "invalid or no api key" });
     return;
   }
 
-  run();
-  res.json(200);
-  res.json({});
+  run().catch(error => {
+    console.log(error);
+  });
+
+  res.status(200).json({ message: "scraping in progress" });
 };
 
 async function run() {
