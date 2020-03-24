@@ -29,7 +29,7 @@ export = async function(req: NowRequest, res: NowResponse) {
     return;
   }
 
-  run().catch(error => {
+  await run().catch(error => {
     console.log(error);
   });
 
@@ -39,7 +39,7 @@ export = async function(req: NowRequest, res: NowResponse) {
 async function run() {
   const current = await getCurrent();
   const next = await sample();
-
+  console.log({ current, next });
   if (current && !changed(current as any, next)) {
     return;
   }
