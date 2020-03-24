@@ -58,5 +58,16 @@ async function getSamples() {
     .orderBy("timestamp")
     .get();
 
-  return query.docs.map(x => x.data());
+  return query.docs.map(x => {
+    const result = x.data();
+
+    return {
+      ...result,
+      timestamp: result.timestamp.toDate()
+    };
+  });
 }
+
+// getSamples()
+//   .then(x => console.log(x))
+//   .catch(x => console.error(x));
