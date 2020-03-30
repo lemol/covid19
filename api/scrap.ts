@@ -43,14 +43,19 @@ export = async function(req: NowRequest, res: NowResponse) {
     return;
   }
 
-  run().catch(error => {
+  try {
+    await run();
+    res
+      .status(200)
+      .json({ message: "scraping in progress" })
+      .end();
+  } catch (error) {
     console.error(error);
-  });
-
-  res
-    .status(200)
-    .json({ message: "scraping in progress" })
-    .end();
+    res
+      .status(500)
+      .json({ message: "something wrong happen" })
+      .end();
+  }
 };
 
 async function run() {
@@ -149,6 +154,6 @@ function changed(sample1: Sample, sample2: Sample) {
   );
 }
 
-// sample()
-//   .then(x => console.log(x))
-//   .catch(x => console.error(x));
+sample()
+  .then(x => console.log(x))
+  .catch(x => console.error(x));
