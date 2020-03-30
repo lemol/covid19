@@ -6,7 +6,7 @@ import * as Sentry from "@sentry/node";
 import * as Integrations from "@sentry/integrations";
 
 type Sample = {
-  confirmed: number | null;
+  active: number | null;
   suspects: number | null;
   recovered: number | null;
   deaths: number | null;
@@ -47,7 +47,7 @@ export = async function(req: NowRequest, res: NowResponse) {
     await run();
     res
       .status(200)
-      .json({ message: "scraping in progress" })
+      .json({ message: "success" })
       .end();
   } catch (error) {
     console.error(error);
@@ -94,13 +94,13 @@ async function sample() {
     return parseInt(element.text());
   };
 
-  const confirmed = statElement(2);
+  const active = statElement(2);
   const suspects = statElement(3);
   const recovered = statElement(4);
   const deaths = statElement(5);
 
   return {
-    confirmed,
+    active,
     suspects,
     recovered,
     deaths
@@ -147,13 +147,13 @@ async function getCurrent() {
 
 function changed(sample1: Sample, sample2: Sample) {
   return !(
-    sample1.confirmed === sample2.confirmed &&
+    sample1.active === sample2.active &&
     sample1.suspects === sample2.suspects &&
     sample1.recovered === sample2.recovered &&
     sample1.deaths === sample2.deaths
   );
 }
 
-sample()
-  .then(x => console.log(x))
-  .catch(x => console.error(x));
+// sample()
+//   .then(x => console.log(x))
+//   .catch(x => console.error(x));

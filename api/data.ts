@@ -4,7 +4,7 @@ import * as Sentry from "@sentry/node";
 import * as Integrations from "@sentry/integrations";
 
 type Sample = {
-  confirmed: number | null;
+  active: number | null;
   suspects: number | null;
   recovered: number | null;
   deaths: number | null;
