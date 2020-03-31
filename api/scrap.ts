@@ -1,9 +1,8 @@
 import { NowRequest, NowResponse } from "@now/node";
-import firebase from "firebase-admin";
 import axios from "axios";
 import cheerio from "cheerio";
 import * as Sentry from "@sentry/node";
-import * as Integrations from "@sentry/integrations";
+import { db } from "./_common";
 
 type Sample = {
   active: number | null;
@@ -13,23 +12,12 @@ type Sample = {
 };
 
 const API_KEY = process.env.SCRAPER_API_KEY as string;
-const SENTRY_DSN = process.env.SENTRY_DSN as string;
-const FIREBASE_KEY = process.env.FIREBASE_KEY as string;
 const COUNTRY = process.env.COUNTRY || "angola";
 const SOURCE_URL = process.env.SOURCE_URL || "https://covid19.gov.ao/";
 
 console.assert(API_KEY && API_KEY.length > 8, "Invalid SCRAPER_API_KEY");
-console.assert(SENTRY_DSN, "Invalid SENTRY_DSN");
 console.assert(COUNTRY, "Invalid COUNTRY");
 console.assert(SOURCE_URL, "Invalid SOURCE_URL");
-
-let db: firebase.firestore.Firestore;
-
-initializeFirebase();
-Sentry.init({
-  dsn: SENTRY_DSN,
-  integrations: [new Integrations.CaptureConsole()]
-});
 
 // MAIN
 
@@ -109,17 +97,6 @@ async function sample() {
 
 // STORE
 
-function initializeFirebase() {
-  const serviceAccountJSON = Buffer.from(FIREBASE_KEY, "base64").toString();
-  const serviceAccount = JSON.parse(serviceAccountJSON);
-
-  firebase.initializeApp({
-    credential: firebase.credential.cert(serviceAccount)
-  });
-
-  db = firebase.firestore();
-}
-
 async function save(timestamp: Date, data: Sample) {
   await db.collection("samples").add({
     timestamp,
@@ -153,7 +130,3 @@ function changed(sample1: Sample, sample2: Sample) {
     sample1.deaths === sample2.deaths
   );
 }
-
-// sample()
-//   .then(x => console.log(x))
-//   .catch(x => console.error(x));
