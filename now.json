@@ -4,6 +4,6 @@
     "FIREBASE_KEY": "@covid19_firebase_key",
     "SENTRY_DSN": "@covid19_sentry_dsn",
     "COUNTRY": "angola",
-    "SOURCE_URL": "https://covid19.gov.ao/"
+    "SOURCE_URL": "https://www.covid19.gov.ao/"
   }
 }
