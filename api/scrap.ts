@@ -82,12 +82,10 @@ async function sample() {
     return parseInt(element.text());
   };
 
-  const confirmed = statElement(2);
+  const active = statElement(2);
   const suspects = statElement(3);
   const recovered = statElement(4);
   const deaths = statElement(5);
-  
-  const active = confirmed - recovered - deaths;
 
   return {
     active,
