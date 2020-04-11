@@ -65,7 +65,7 @@ async function sample() {
   const $ = cheerio.load(response.data);
 
   const statElement = (index: number) => {
-    const selector = `body > section > section.lastsection.container.box.effect7 > div > div > div > div > div:nth-child(${index}) > span.big-number.text-black`;
+    const selector = `body > section.lastsection.container.box.effect7 > div > div > div > div > div:nth-child(${index}) > span.big-number.text-black`;
     const element = $(selector);
 
     if (!element || !element.length) {
