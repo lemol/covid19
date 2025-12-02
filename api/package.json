@@ -6,7 +6,7 @@
     "@sentry/integrations": "^5.15.0",
     "@sentry/node": "^5.15.0",
     "apollo-server-micro": "^2.11.0",
-    "axios": "^0.19.2",
+    "axios": "^0.30.2",
     "cheerio": "^1.0.0-rc.3",
     "firebase-admin": "^8.10.0",
     "graphql": "^14.6.0"
